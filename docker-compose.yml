@@ -25,6 +25,8 @@ services:
       POSTGRES_DB: kinobot
       POSTGRES_USER: kinobot
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - '127.0.0.1:5433:5432'
     volumes:
       - kinobot_postgres_data:/var/lib/postgresql/data
     healthcheck:
