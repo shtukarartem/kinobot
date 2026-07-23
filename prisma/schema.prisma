@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WatchStatus {
+  watched
+  watching
+  planned
+  dropped
+}
+
+model User {
+  id             String       @id @default(uuid()) @db.Uuid
+  telegramUserId String       @unique
+  username       String?
+  firstName      String?
+  entries        WatchEntry[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Title {
+  id               String      @id @default(uuid()) @db.Uuid
+  poiskkinoId       Int         @unique
+  name             String
+  alternativeName  String?
+  type             String
+  year             Int?
+  description      String?
+  shortDescription String?
+  posterUrl        String?
+  ratingKp         Float?
+  ratingImdb       Float?
+  entry            WatchEntry?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model WatchEntry {
+  id              String      @id @default(uuid()) @db.Uuid
+  titleId         String      @unique @db.Uuid
+  addedByUserId   String      @db.Uuid
+  status          WatchStatus @default(watched)
+  rating          Int?
+  note            String?
+  watchedAt       DateTime?
+  watchedTogether Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  title       Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  addedByUser User  @relation(fields: [addedByUserId], references: [id])
+
+  @@index([status])
+  @@index([watchedAt])
+  @@index([createdAt])
+}

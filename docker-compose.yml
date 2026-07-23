@@ -1,21 +1,37 @@
 services:
+  kinobot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      POISKKINO_API_KEY: ${POISKKINO_API_KEY}
+      ALLOWED_TELEGRAM_USER_IDS: ${ALLOWED_TELEGRAM_USER_IDS}
+      DATABASE_URL: postgresql://kinobot:${POSTGRES_PASSWORD}@postgres:5432/kinobot?schema=public
+      NODE_ENV: production
+      PORT: 3000
+    expose:
+      - '3000'
+    command: sh -c "npm run db:deploy && npm run start"
+
   postgres:
     image: postgres:16-alpine
-    container_name: kinobot-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: kinobot
       POSTGRES_USER: kinobot
-      POSTGRES_PASSWORD: kinobot
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - kinobot_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kinobot -d kinobot"]
-      interval: 10s
+      test: ['CMD-SHELL', 'pg_isready -U kinobot -d kinobot']
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 volumes:
-  postgres_data:
+  kinobot_postgres_data:
