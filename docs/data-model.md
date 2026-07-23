@@ -6,51 +6,51 @@
 
 Пользователь Telegram, которому разрешен доступ.
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | uuid | Внутренний id |
-| `telegramUserId` | string | Telegram user id |
-| `username` | string, null | Telegram username |
-| `firstName` | string, null | Имя из Telegram |
-| `createdAt` | datetime | Дата создания |
-| `updatedAt` | datetime | Дата обновления |
+| Поле             | Тип          | Описание          |
+| ---------------- | ------------ | ----------------- |
+| `id`             | uuid         | Внутренний id     |
+| `telegramUserId` | string       | Telegram user id  |
+| `username`       | string, null | Telegram username |
+| `firstName`      | string, null | Имя из Telegram   |
+| `createdAt`      | datetime     | Дата создания     |
+| `updatedAt`      | datetime     | Дата обновления   |
 
 ### Title
 
 Кино или сериал из ПоискКино.
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | uuid | Внутренний id |
-| `poiskkinoId` | integer | Id тайтла в ПоискКино |
-| `name` | string | Русское название или fallback |
-| `alternativeName` | string, null | Оригинальное или альтернативное название |
-| `type` | string | Тип: `movie`, `tv-series`, `cartoon`, `animated-series`, `anime`, `tv-show` |
-| `year` | integer, null | Год |
-| `description` | string, null | Описание |
-| `shortDescription` | string, null | Краткое описание |
-| `posterUrl` | string, null | URL постера |
-| `ratingKp` | float, null | Рейтинг Кинопоиска |
-| `ratingImdb` | float, null | Рейтинг IMDb |
-| `createdAt` | datetime | Дата создания |
-| `updatedAt` | datetime | Дата обновления |
+| Поле               | Тип           | Описание                                                                    |
+| ------------------ | ------------- | --------------------------------------------------------------------------- |
+| `id`               | uuid          | Внутренний id                                                               |
+| `poiskkinoId`      | integer       | Id тайтла в ПоискКино                                                       |
+| `name`             | string        | Русское название или fallback                                               |
+| `alternativeName`  | string, null  | Оригинальное или альтернативное название                                    |
+| `type`             | string        | Тип: `movie`, `tv-series`, `cartoon`, `animated-series`, `anime`, `tv-show` |
+| `year`             | integer, null | Год                                                                         |
+| `description`      | string, null  | Описание                                                                    |
+| `shortDescription` | string, null  | Краткое описание                                                            |
+| `posterUrl`        | string, null  | URL постера                                                                 |
+| `ratingKp`         | float, null   | Рейтинг Кинопоиска                                                          |
+| `ratingImdb`       | float, null   | Рейтинг IMDb                                                                |
+| `createdAt`        | datetime      | Дата создания                                                               |
+| `updatedAt`        | datetime      | Дата обновления                                                             |
 
 ### WatchEntry
 
 Запись в общем списке.
 
-| Поле | Тип | Описание |
-| --- | --- | --- |
-| `id` | uuid | Внутренний id |
-| `titleId` | uuid | Ссылка на `Title` |
-| `addedByUserId` | uuid | Кто добавил |
-| `status` | enum | `watched`, `watching`, `planned`, `dropped` |
-| `rating` | integer, null | Оценка пользователя от 1 до 10 |
-| `note` | string, null | Заметка |
-| `watchedAt` | datetime, null | Дата просмотра |
-| `watchedTogether` | boolean | Смотрели вместе |
-| `createdAt` | datetime | Дата создания |
-| `updatedAt` | datetime | Дата обновления |
+| Поле              | Тип            | Описание                                    |
+| ----------------- | -------------- | ------------------------------------------- |
+| `id`              | uuid           | Внутренний id                               |
+| `titleId`         | uuid           | Ссылка на `Title`                           |
+| `addedByUserId`   | uuid           | Кто добавил                                 |
+| `status`          | enum           | `watched`, `watching`, `planned`, `dropped` |
+| `rating`          | integer, null  | Оценка пользователя от 1 до 10              |
+| `note`            | string, null   | Заметка                                     |
+| `watchedAt`       | datetime, null | Дата просмотра                              |
+| `watchedTogether` | boolean        | Смотрели вместе                             |
+| `createdAt`       | datetime       | Дата создания                               |
+| `updatedAt`       | datetime       | Дата обновления                             |
 
 ## Ограничения
 

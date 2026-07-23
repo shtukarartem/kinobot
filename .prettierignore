@@ -1,0 +1,10 @@
+dist
+node_modules
+coverage
+package-lock.json
+prisma/**/*.prisma
+prisma/migrations/**/*.sql
+prisma/migrations/*.toml
+Dockerfile
+.dockerignore
+.env.example

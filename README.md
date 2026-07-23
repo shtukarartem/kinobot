@@ -22,7 +22,7 @@ Telegram-бот для совместного списка просмотрен�
 - TypeScript
 - Telegraf для Telegram Bot API
 - PostgreSQL для хранения данных
-- Prisma или Drizzle ORM
+- Prisma ORM
 - ПоискКино API: https://api.poiskkino.dev
 
 ## Документация
@@ -41,6 +41,8 @@ TELEGRAM_BOT_TOKEN=
 POISKKINO_API_KEY=
 ALLOWED_TELEGRAM_USER_IDS=
 DATABASE_URL=postgresql://kinobot:kinobot@localhost:5432/kinobot?schema=public
+POSTGRES_PASSWORD=kinobot
+PORT=3000
 ```
 
 `ALLOWED_TELEGRAM_USER_IDS` хранит два Telegram user id через запятую:
@@ -57,23 +59,100 @@ ALLOWED_TELEGRAM_USER_IDS=123456789,987654321
 docker compose up -d postgres
 ```
 
+Для локального Docker Compose нужен `POSTGRES_PASSWORD`:
+
+```env
+POSTGRES_PASSWORD=kinobot
+```
+
 Строка подключения для этой базы:
 
 ```env
 DATABASE_URL=postgresql://kinobot:kinobot@localhost:5432/kinobot?schema=public
 ```
 
+## Разработка
+
+Установка зависимостей:
+
+```bash
+npm install
+```
+
+Запуск в dev-режиме:
+
+```bash
+npm run dev
+```
+
+Проверки:
+
+```bash
+npm run check
+npm run lint
+npm run format:check
+```
+
+## База данных
+
+После установки зависимостей нужно сгенерировать Prisma Client и применить миграции:
+
+```bash
+npm run db:generate
+npm run db:migrate
+```
+
+Prisma Studio:
+
+```bash
+npm run db:studio
+```
+
+## Деплой
+
+Проект подготовлен для Dokploy/Docker Compose в том же стиле, что и `CarCeeper`.
+
+Для деплоя через `docker-compose.yml` нужны переменные окружения:
+
+```env
+TELEGRAM_BOT_TOKEN=
+POISKKINO_API_KEY=
+ALLOWED_TELEGRAM_USER_IDS=123456789,987654321
+POSTGRES_PASSWORD=strong-production-password
+```
+
+Compose поднимает два сервиса:
+
+- `kinobot` - приложение;
+- `postgres` - PostgreSQL внутри compose-сети.
+
+Перед стартом контейнер приложения выполняет:
+
+```bash
+npm run db:deploy
+```
+
+Healthcheck endpoint:
+
+```http
+GET /health
+```
+
+Если используешь внешний PostgreSQL в Dokploy, укажи свой `DATABASE_URL` в переменных окружения приложения и убери сервис `postgres` из compose-конфига.
+
 ## Основные команды бота
 
-| Команда | Назначение |
-| --- | --- |
-| `/start` | Проверка доступа и краткое меню |
-| `/search` | Поиск фильма или сериала |
-| `/list` | Общий список просмотренного |
-| `/stats` | Простая статистика |
-| `/help` | Справка |
+| Команда   | Назначение                      |
+| --------- | ------------------------------- |
+| `/start`  | Проверка доступа и краткое меню |
+| `/search` | Поиск фильма или сериала        |
+| `/list`   | Общий список просмотренного     |
+| `/stats`  | Статистика по списку            |
+| `/help`   | Справка                         |
 
 Основной сценарий поиска можно сделать не только через команды, но и через обычный текст: пользователь пишет название, бот предлагает результаты.
+
+В карточке записи доступны редактирование статуса, оценки, заметки, даты просмотра, флага совместного просмотра и удаление.
 
 ## Статусы записей
 
