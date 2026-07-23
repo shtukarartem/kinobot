@@ -138,6 +138,22 @@ Healthcheck endpoint:
 GET /health
 ```
 
+PostgreSQL проброшен только на loopback хоста для безопасного доступа через SSH tunnel:
+
+```text
+127.0.0.1:5433 -> postgres:5432
+```
+
+Параметры для Navicat через SSH tunnel:
+
+```text
+Host: 127.0.0.1
+Port: 5433
+Database: kinobot
+User: kinobot
+Password: значение POSTGRES_PASSWORD
+```
+
 Если используешь внешний PostgreSQL в Dokploy, укажи свой `DATABASE_URL` в переменных окружения приложения и убери сервис `postgres` из compose-конфига.
 
 ## Основные команды бота
