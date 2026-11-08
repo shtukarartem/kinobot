@@ -39,7 +39,10 @@ export function createBot(): Telegraf {
   bot.action(/^edit:status:[0-9a-f-]+$/i, handleEditStatusMenu);
   bot.action(/^edit:rating:[0-9a-f-]+$/i, handleEditRatingMenu);
   bot.action(/^set:status:[0-9a-f-]+:[a-z-]+$/i, handleSetStatus);
-  bot.action(/^set:rating:[0-9a-f-]+:(clear|\d+)$/i, handleSetRating);
+  bot.action(
+    /^set:rating:[0-9a-f-]+:(clear|trash|passable|commendable|excellent)$/i,
+    handleSetRating,
+  );
   bot.action(/^ask:note:[0-9a-f-]+$/i, handleAskNote);
   bot.action(/^ask:date:[0-9a-f-]+$/i, handleAskDate);
   bot.action(/^toggle:together:[0-9a-f-]+$/i, handleToggleTogether);

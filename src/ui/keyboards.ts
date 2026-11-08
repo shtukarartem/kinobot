@@ -41,10 +41,10 @@ export function buildWatchEntryKeyboard(entryId: string) {
   return Markup.inlineKeyboard([
     [
       Markup.button.callback('Статус', `edit:status:${entryId}`),
-      Markup.button.callback('Оценка', `edit:rating:${entryId}`),
+      Markup.button.callback('Моя оценка', `edit:rating:${entryId}`),
     ],
     [
-      Markup.button.callback('Заметка', `ask:note:${entryId}`),
+      Markup.button.callback('Моя заметка', `ask:note:${entryId}`),
       Markup.button.callback('Дата', `ask:date:${entryId}`),
     ],
     [
@@ -70,12 +70,14 @@ export function buildStatusKeyboard(entryId: string) {
 
 export function buildRatingKeyboard(entryId: string) {
   const rows: InlineButton[][] = [
-    [1, 2, 3, 4, 5].map((rating) =>
-      Markup.button.callback(String(rating), `set:rating:${entryId}:${rating}`),
-    ),
-    [6, 7, 8, 9, 10].map((rating) =>
-      Markup.button.callback(String(rating), `set:rating:${entryId}:${rating}`),
-    ),
+    [
+      Markup.button.callback('Мусор', `set:rating:${entryId}:trash`),
+      Markup.button.callback('Проходняк', `set:rating:${entryId}:passable`),
+    ],
+    [
+      Markup.button.callback('Похвально', `set:rating:${entryId}:commendable`),
+      Markup.button.callback('Изумительно', `set:rating:${entryId}:excellent`),
+    ],
     [
       Markup.button.callback('Сбросить', `set:rating:${entryId}:clear`),
       Markup.button.callback('Назад', `entry:${entryId}`),

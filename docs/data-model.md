@@ -45,18 +45,31 @@
 | `titleId`         | uuid           | Ссылка на `Title`                           |
 | `addedByUserId`   | uuid           | Кто добавил                                 |
 | `status`          | enum           | `watched`, `watching`, `planned`, `dropped` |
-| `rating`          | integer, null  | Оценка пользователя от 1 до 10              |
-| `note`            | string, null   | Заметка                                     |
 | `watchedAt`       | datetime, null | Дата просмотра                              |
 | `watchedTogether` | boolean        | Смотрели вместе                             |
 | `createdAt`       | datetime       | Дата создания                               |
 | `updatedAt`       | datetime       | Дата обновления                             |
 
+### WatchOpinion
+
+Персональная оценка и заметка пользователя к записи общего списка.
+
+| Поле        | Тип          | Описание                                        |
+| ----------- | ------------ | ----------------------------------------------- |
+| `id`        | uuid         | Внутренний id                                   |
+| `entryId`   | uuid         | Ссылка на `WatchEntry`                          |
+| `userId`    | uuid         | Автор оценки и заметки                          |
+| `rating`    | enum, null   | `trash`, `passable`, `commendable`, `excellent` |
+| `note`      | string, null | Персональная заметка                            |
+| `createdAt` | datetime     | Дата создания                                   |
+| `updatedAt` | datetime     | Дата обновления                                 |
+
 ## Ограничения
 
 - `Title.poiskkinoId` должен быть уникальным.
 - `WatchEntry.titleId` должен быть уникальным для MVP, чтобы не было дублей в общем списке.
-- `WatchEntry.rating` должен быть от 1 до 10 или `null`.
+- Пара `WatchOpinion.entryId + WatchOpinion.userId` должна быть уникальной.
+- У каждого пользователя может быть только одна оценка и одна заметка на тайтл.
 
 ## Индексы
 
@@ -78,12 +91,20 @@ enum WatchStatus {
   dropped
 }
 
+enum RatingValue {
+  trash
+  passable
+  commendable
+  excellent
+}
+
 model User {
   id             String       @id @default(uuid()) @db.Uuid
   telegramUserId String       @unique
   username       String?
   firstName      String?
   entries        WatchEntry[]
+  opinions       WatchOpinion[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
@@ -110,8 +131,6 @@ model WatchEntry {
   titleId         String      @unique @db.Uuid
   addedByUserId   String      @db.Uuid
   status          WatchStatus @default(watched)
-  rating          Int?
-  note            String?
   watchedAt       DateTime?
   watchedTogether Boolean  @default(false)
   createdAt       DateTime @default(now())
@@ -119,16 +138,33 @@ model WatchEntry {
 
   title       Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
   addedByUser User  @relation(fields: [addedByUserId], references: [id])
+  opinions    WatchOpinion[]
 
   @@index([status])
   @@index([watchedAt])
   @@index([createdAt])
 }
+
+model WatchOpinion {
+  id        String       @id @default(uuid()) @db.Uuid
+  entryId   String       @db.Uuid
+  userId    String       @db.Uuid
+  rating    RatingValue?
+  note      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  entry WatchEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([entryId, userId])
+  @@index([userId])
+}
 ```
 
 ## Почему `Title` и `WatchEntry` разделены
 
-`Title` хранит данные внешнего каталога, а `WatchEntry` хранит наше отношение к этому тайтлу. Так проще обновлять метаданные из ПоискКино и не смешивать их с пользовательскими оценками и заметками.
+`Title` хранит данные внешнего каталога, `WatchEntry` — общие данные списка, а `WatchOpinion` — персональные оценки и заметки. Поэтому два пользователя могут независимо оценить один тайтл и оставить разные заметки.
 
 ## PostgreSQL-заметки
 

@@ -14,19 +14,27 @@ enum WatchStatus {
   dropped
 }
 
+enum RatingValue {
+  trash
+  passable
+  commendable
+  excellent
+}
+
 model User {
-  id             String       @id @default(uuid()) @db.Uuid
-  telegramUserId String       @unique
+  id             String         @id @default(uuid()) @db.Uuid
+  telegramUserId String         @unique
   username       String?
   firstName      String?
   entries        WatchEntry[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  opinions       WatchOpinion[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model Title {
   id               String      @id @default(uuid()) @db.Uuid
-  poiskkinoId       Int         @unique
+  poiskkinoId      Int         @unique
   name             String
   alternativeName  String?
   type             String
@@ -46,17 +54,32 @@ model WatchEntry {
   titleId         String      @unique @db.Uuid
   addedByUserId   String      @db.Uuid
   status          WatchStatus @default(watched)
-  rating          Int?
-  note            String?
   watchedAt       DateTime?
   watchedTogether Boolean     @default(false)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  title       Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
-  addedByUser User  @relation(fields: [addedByUserId], references: [id])
+  title       Title          @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  addedByUser User           @relation(fields: [addedByUserId], references: [id])
+  opinions    WatchOpinion[]
 
   @@index([status])
   @@index([watchedAt])
   @@index([createdAt])
+}
+
+model WatchOpinion {
+  id        String       @id @default(uuid()) @db.Uuid
+  entryId   String       @db.Uuid
+  userId    String       @db.Uuid
+  rating    RatingValue?
+  note      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  entry WatchEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([entryId, userId])
+  @@index([userId])
 }
