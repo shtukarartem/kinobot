@@ -10,6 +10,13 @@ const movieTypeLabels: Record<MovieType, string> = {
   'tv-show': 'ТВ-шоу',
 };
 
+const ratingLabels: Record<string, string> = {
+  trash: 'Мусор',
+  passable: 'Проходняк',
+  commendable: 'Похвально',
+  excellent: 'Изумительно',
+};
+
 export function formatSearchResult(movie: MovieSearchResult, index: number): string {
   const title = [`${index}. ${movie.name}`, movie.year ? `(${movie.year})` : null]
     .filter(Boolean)
@@ -45,22 +52,24 @@ export function formatWatchlistPage(watchlistPage: WatchlistPage): string {
 export function formatWatchEntryCard(entry: WatchlistEntry): string {
   const title = formatTitle(entry.title.name, entry.title.year);
   const type = formatTitleType(entry.title.type);
-  const rating = entry.rating ? `Оценка: ${entry.rating}/10` : null;
   const addedBy = `Добавил: ${formatTelegramUser(entry.addedByUser)}`;
   const watchedAt = entry.watchedAt ? `Просмотрено: ${formatDate(entry.watchedAt)}` : null;
   const watchedTogether = entry.watchedTogether ? 'Смотрели вместе: да' : null;
-  const note = entry.note ? `Заметка: ${entry.note}` : null;
   const description = entry.title.shortDescription ?? entry.title.description;
+  const opinions = entry.opinions
+    .filter((opinion) => opinion.rating || opinion.note)
+    .map(formatOpinion);
 
   return [
     title,
     [type, formatStatus(entry.status)].filter(Boolean).join(' | '),
-    rating,
     addedBy,
     watchedAt,
     watchedTogether,
-    note,
     description,
+    '',
+    opinions.length > 0 ? 'Оценки и заметки:' : 'Оценок и заметок пока нет.',
+    ...opinions,
   ]
     .filter(Boolean)
     .join('\n');
@@ -76,14 +85,16 @@ export function formatWatchlistStats(stats: WatchlistStats): string {
     '',
     `Всего в списке: ${stats.total}`,
     `Смотрели вместе: ${stats.watchedTogether}`,
-    stats.averageRating ? `Средняя оценка: ${stats.averageRating.toFixed(1)}/10` : null,
-    stats.rated > 0 ? `Оценено: ${stats.rated}` : null,
+    stats.rated > 0 ? `Всего оценок: ${stats.rated}` : null,
     '',
     'По статусам:',
     ...formatCountLines(stats.byStatus, formatStatus),
     '',
     'По типам:',
     ...formatCountLines(stats.byType, formatTitleType),
+    '',
+    'По оценкам:',
+    ...formatCountLines(stats.byRating, formatRating),
     '',
     'Кто добавлял:',
     ...stats.byUser.map(({ user, count }) => `${formatTelegramUser(user)}: ${count}`),
@@ -102,9 +113,22 @@ function truncate(value: string, maxLength: number): string {
 
 function formatWatchlistRow(entry: WatchlistEntry, index: number): string {
   const title = formatTitle(entry.title.name, entry.title.year);
-  const rating = entry.rating ? ` | ${entry.rating}/10` : '';
+  const ratings = entry.opinions
+    .filter((opinion) => opinion.rating)
+    .map((opinion) => `${formatTelegramUser(opinion.user)}: ${formatRating(opinion.rating!)}`);
+  const ratingSuffix = ratings.length > 0 ? ` | ${ratings.join('; ')}` : '';
 
-  return `${index}. ${title} | ${formatStatus(entry.status)}${rating}`;
+  return `${index}. ${title} | ${formatStatus(entry.status)}${ratingSuffix}`;
+}
+
+function formatOpinion(opinion: WatchlistEntry['opinions'][number]): string {
+  return [
+    formatTelegramUser(opinion.user),
+    opinion.rating ? `Оценка: ${formatRating(opinion.rating)}` : null,
+    opinion.note ? `Заметка: ${opinion.note}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function formatTitle(name: string, year: number | null): string {
@@ -124,6 +148,10 @@ function formatStatus(status: string): string {
 
 function formatTitleType(type: string): string {
   return type in movieTypeLabels ? movieTypeLabels[type as MovieType] : type;
+}
+
+function formatRating(rating: string): string {
+  return ratingLabels[rating] ?? rating;
 }
 
 function formatTelegramUser(user: WatchlistEntry['addedByUser']): string {

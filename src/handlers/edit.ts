@@ -1,14 +1,14 @@
-import type { WatchStatus } from '@prisma/client';
+import type { RatingValue, WatchStatus } from '@prisma/client';
 import type { Context, MiddlewareFn } from 'telegraf';
 
 import {
   deleteWatchEntry,
   getWatchEntryById,
   toggleWatchEntryTogether,
-  updateWatchEntryNote,
-  updateWatchEntryRating,
   updateWatchEntryStatus,
   updateWatchEntryWatchedAt,
+  updateWatchOpinionNote,
+  updateWatchOpinionRating,
 } from '../services/watchlist.js';
 import { formatWatchEntryCard } from '../ui/formatters.js';
 import {
@@ -30,6 +30,7 @@ type PendingEdit =
 
 const pendingEdits = new Map<string, PendingEdit>();
 const watchStatuses = new Set<WatchStatus>(['watched', 'watching', 'planned', 'dropped']);
+const ratingValues = new Set<RatingValue>(['trash', 'passable', 'commendable', 'excellent']);
 
 export async function handleEditStatusMenu(ctx: Context): Promise<void> {
   const entryId = getCallbackEntryId(ctx, /^edit:status:([0-9a-f-]+)$/i);
@@ -73,18 +74,26 @@ export async function handleSetStatus(ctx: Context): Promise<void> {
 
 export async function handleSetRating(ctx: Context): Promise<void> {
   const callbackData = getCallbackData(ctx);
-  const match = /^set:rating:([0-9a-f-]+):(clear|\d+)$/i.exec(callbackData ?? '');
+  const match = /^set:rating:([0-9a-f-]+):(clear|trash|passable|commendable|excellent)$/i.exec(
+    callbackData ?? '',
+  );
   const entryId = match?.[1];
   const rawRating = match?.[2];
-  const rating = rawRating === 'clear' ? null : Number(rawRating);
+  const rating = rawRating === 'clear' ? null : rawRating;
+  const telegramUserId = ctx.from?.id.toString();
 
-  if (!entryId || (rating !== null && (!Number.isInteger(rating) || rating < 1 || rating > 10))) {
+  if (
+    !entryId ||
+    !telegramUserId ||
+    rating === undefined ||
+    (rating !== null && !isRatingValue(rating))
+  ) {
     await ctx.answerCbQuery('Не получилось изменить оценку.');
     return;
   }
 
   await ctx.answerCbQuery();
-  const entry = await updateWatchEntryRating(entryId, rating);
+  const entry = await updateWatchOpinionRating(entryId, telegramUserId, rating);
   await replyWithUpdatedEntry(
     ctx,
     entry,
@@ -97,7 +106,7 @@ export async function handleAskNote(ctx: Context): Promise<void> {
     ctx,
     /^ask:note:([0-9a-f-]+)$/i,
     'note',
-    'Напишите заметку следующим сообщением. Для очистки отправьте "-".',
+    'Напишите свою заметку следующим сообщением. Для очистки отправьте "-".',
   );
 }
 
@@ -124,7 +133,7 @@ export const handlePendingEditText: MiddlewareFn<Context> = async (ctx, next) =>
 
   if (pendingEdit.kind === 'note') {
     const note = text.trim() === '-' ? null : text.trim();
-    const entry = await updateWatchEntryNote(pendingEdit.entryId, note);
+    const entry = await updateWatchOpinionNote(pendingEdit.entryId, telegramUserId, note);
     await replyWithUpdatedEntry(ctx, entry, note ? 'Заметка обновлена.' : 'Заметка очищена.');
     return;
   }
@@ -239,6 +248,10 @@ function getTextMessage(ctx: Context): string | null {
 
 function isWatchStatus(status: string | undefined): status is WatchStatus {
   return Boolean(status && watchStatuses.has(status as WatchStatus));
+}
+
+function isRatingValue(rating: string): rating is RatingValue {
+  return ratingValues.has(rating as RatingValue);
 }
 
 function parseRuDate(value: string): Date | null {

@@ -1,4 +1,4 @@
-import type { Title, WatchEntry, WatchStatus } from '@prisma/client';
+import type { RatingValue, Title, WatchEntry, WatchOpinion, WatchStatus } from '@prisma/client';
 
 import { prisma } from '../db/client.js';
 import type { MovieSearchResult } from '../types/poiskkino.js';
@@ -15,13 +15,20 @@ export type AddToWatchlistResult =
       title: Title;
     };
 
+export interface WatchlistUser {
+  telegramUserId: string;
+  username: string | null;
+  firstName: string | null;
+}
+
+export interface WatchlistOpinion extends WatchOpinion {
+  user: WatchlistUser;
+}
+
 export interface WatchlistEntry extends WatchEntry {
   title: Title;
-  addedByUser: {
-    telegramUserId: string;
-    username: string | null;
-    firstName: string | null;
-  };
+  addedByUser: WatchlistUser;
+  opinions: WatchlistOpinion[];
 }
 
 export interface WatchlistPage {
@@ -37,7 +44,7 @@ export interface WatchlistStats {
   total: number;
   watchedTogether: number;
   rated: number;
-  averageRating: number | null;
+  byRating: Record<string, number>;
   byStatus: Record<string, number>;
   byType: Record<string, number>;
   byUser: Array<{
@@ -113,6 +120,18 @@ export async function getWatchlistPage(page: number): Promise<WatchlistPage> {
           firstName: true,
         },
       },
+      opinions: {
+        include: {
+          user: {
+            select: {
+              telegramUserId: true,
+              username: true,
+              firstName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
     orderBy: [{ watchedAt: 'desc' }, { createdAt: 'desc' }],
     skip: (safePage - 1) * WATCHLIST_PAGE_SIZE,
@@ -141,6 +160,18 @@ export async function getWatchEntryById(id: string): Promise<WatchlistEntry | nu
           firstName: true,
         },
       },
+      opinions: {
+        include: {
+          user: {
+            select: {
+              telegramUserId: true,
+              username: true,
+              firstName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
   });
 }
@@ -156,11 +187,23 @@ export async function getWatchlistStats(): Promise<WatchlistStats> {
           firstName: true,
         },
       },
+      opinions: {
+        include: {
+          user: {
+            select: {
+              telegramUserId: true,
+              username: true,
+              firstName: true,
+            },
+          },
+        },
+      },
     },
   });
 
   const byStatus: Record<string, number> = {};
   const byType: Record<string, number> = {};
+  const byRating: Record<string, number> = {};
   const byUserMap = new Map<
     string,
     {
@@ -168,7 +211,6 @@ export async function getWatchlistStats(): Promise<WatchlistStats> {
       count: number;
     }
   >();
-  let ratingSum = 0;
   let rated = 0;
   let watchedTogether = 0;
 
@@ -183,9 +225,11 @@ export async function getWatchlistStats(): Promise<WatchlistStats> {
       count: (currentUserCount?.count ?? 0) + 1,
     });
 
-    if (entry.rating) {
-      ratingSum += entry.rating;
-      rated += 1;
+    for (const opinion of entry.opinions) {
+      if (opinion.rating) {
+        byRating[opinion.rating] = (byRating[opinion.rating] ?? 0) + 1;
+        rated += 1;
+      }
     }
 
     if (entry.watchedTogether) {
@@ -197,7 +241,7 @@ export async function getWatchlistStats(): Promise<WatchlistStats> {
     total: entries.length,
     watchedTogether,
     rated,
-    averageRating: rated > 0 ? ratingSum / rated : null,
+    byRating,
     byStatus,
     byType,
     byUser: [...byUserMap.values()].sort((left, right) => right.count - left.count),
@@ -219,28 +263,48 @@ export async function updateWatchEntryStatus(
   return getWatchEntryById(id);
 }
 
-export async function updateWatchEntryRating(
-  id: string,
-  rating: number | null,
+export async function updateWatchOpinionRating(
+  entryId: string,
+  telegramUserId: string,
+  rating: RatingValue | null,
 ): Promise<WatchlistEntry | null> {
-  await prisma.watchEntry.update({
-    where: { id },
-    data: { rating },
+  const user = await getUserByTelegramId(telegramUserId);
+
+  await prisma.watchOpinion.upsert({
+    where: {
+      entryId_userId: { entryId, userId: user.id },
+    },
+    create: {
+      entryId,
+      userId: user.id,
+      rating,
+    },
+    update: { rating },
   });
 
-  return getWatchEntryById(id);
+  return getWatchEntryById(entryId);
 }
 
-export async function updateWatchEntryNote(
-  id: string,
+export async function updateWatchOpinionNote(
+  entryId: string,
+  telegramUserId: string,
   note: string | null,
 ): Promise<WatchlistEntry | null> {
-  await prisma.watchEntry.update({
-    where: { id },
-    data: { note },
+  const user = await getUserByTelegramId(telegramUserId);
+
+  await prisma.watchOpinion.upsert({
+    where: {
+      entryId_userId: { entryId, userId: user.id },
+    },
+    create: {
+      entryId,
+      userId: user.id,
+      note,
+    },
+    update: { note },
   });
 
-  return getWatchEntryById(id);
+  return getWatchEntryById(entryId);
 }
 
 export async function updateWatchEntryWatchedAt(
@@ -277,6 +341,18 @@ export async function deleteWatchEntry(id: string): Promise<void> {
   await prisma.watchEntry.delete({
     where: { id },
   });
+}
+
+async function getUserByTelegramId(telegramUserId: string) {
+  const user = await prisma.user.findUnique({
+    where: { telegramUserId },
+  });
+
+  if (!user) {
+    throw new Error(`Allowed Telegram user was not found in database: ${telegramUserId}`);
+  }
+
+  return user;
 }
 
 function buildTitlePayload(movie: MovieSearchResult) {
